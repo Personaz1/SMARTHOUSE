@@ -1,0 +1,25 @@
+services:
+  core:
+    ports:
+      - "777:8000"
+    environment:
+      - UI_CORS_ORIGINS=http://5.78.72.68:666
+  ui:
+    environment:
+      - VITE_API_BASE=http://core:8000
+    ports:
+      - "666:80"
+  mosquitto:
+    ports:
+      - "1883:1883"
+      - "1884:9001"
+  sim:
+    profiles: ["dev"]
+  grafana:
+    profiles: ["dev"]
+  prometheus:
+    profiles: ["dev"]
+  minio:
+    profiles: ["dev"]
+
+
