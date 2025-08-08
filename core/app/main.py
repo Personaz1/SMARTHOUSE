@@ -35,6 +35,7 @@ from .analysis.analyzer import BackgroundAnalyzer
 from .storage.db import EventStore
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
+from .llm.router import generate_response
 
 
 app = FastAPI(title="ΔΣ Guardian Core", version="0.1.0")
@@ -147,27 +148,21 @@ async def ui_stream() -> StreamingResponse:
 @app.get("/chat/stream")
 async def chat_stream(q: str) -> StreamingResponse:
     async def gen():
-        # Build lightweight system context for natural-language summary
         snap = state.context.snapshot() if state.context else {}
         events = []
-        try:
-            if state.store:
+        if state.store:
+            try:
                 events = await state.store.recent(limit=20)
+            except Exception:
+                events = []
+        # Try model via Router (Gemini), fallback to heuristic
+        try:
+            text = await generate_response(q, snap, events)
         except Exception:
-            events = []
-        devices_count = len(snap.get("devices", {}))
-        zones_count = len(snap.get("zones", {}))
-        sec_mode = snap.get("security_mode", "unknown")
-        # Compose a natural response (stub; replace with Router backend later)
-        preface = (
-            f"Я вижу {devices_count} устройств в {zones_count} зонах. "
-            f"Режим охраны: {sec_mode}. "
-        )
-        recent = ", ".join([e.get("type", "event") for e in events[-5:]]) or "без недавних событий"
-        text = preface + f"Последние события: {recent}. Запрос: {q}"
+            text = "Ошибка генерации ответа."
         for token in text.split(" "):
             yield format_sse("chunk", {"text": token + " "})
-            await asyncio.sleep(0.015)
+            await asyncio.sleep(0.01)
         yield format_sse("done", {"ok": True})
     return StreamingResponse(gen(), media_type="text/event-stream")
 
