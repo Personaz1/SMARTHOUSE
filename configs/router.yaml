@@ -1,0 +1,14 @@
+policies:
+  default: {latency_ms: 600, cost: low}
+  vision:  {type: VLM, latency_ms: 200, quality: high}
+  control: {deterministic: true, prefer: non_llm}
+backends:
+  - name: triton/yolov8n
+  - name: triton/rt1
+  - name: vllm/llama3-8b
+  - name: ollama/mistral-7b-instruct
+fallbacks:
+  - primary: vllm/llama3-8b
+    to: ollama/mistral-7b
+
+

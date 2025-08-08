@@ -1,0 +1,52 @@
+{
+  "title": "SmartHouse Core",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "type": "graph",
+      "title": "Tool calls (ok/err/timeout)",
+      "targets": [
+        {"expr": "sum by (tool,result) (rate(tool_calls_total[5m]))"}
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Tool latency p90 (ms)",
+      "targets": [
+        {"expr": "histogram_quantile(0.9, sum by (le,tool) (rate(tool_call_latency_ms_bucket[5m]))) * 1"}
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Trigger firings per rule",
+      "targets": [
+        {"expr": "increase(trigger_firings_total[15m])"}
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Agent commands (ok/err)",
+      "targets": [
+        {"expr": "sum by (result) (rate(agent_commands_total[5m]))"}
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "MQTT wait latency p90",
+      "targets": [
+        {"expr": "histogram_quantile(0.9, sum by (le) (rate(mqtt_wait_time_ms_bucket[5m])))"}
+      ]
+    },
+    {
+      "type": "table",
+      "title": "System health",
+      "targets": [
+        {"expr": "system_health"}
+      ]
+    }
+  ]
+}
+
+

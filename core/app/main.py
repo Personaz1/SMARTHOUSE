@@ -25,10 +25,12 @@ from .models import (
 from .metrics import tool_calls_total, tool_call_latency_ms, agent_commands_total
 from .agent.supervisor import Supervisor
 from .metrics import rules_version
+from .api_router import router as router_api
 
 
 app = FastAPI(title="ΔΣ Guardian Core", version="0.1.0")
 Instrumentator().instrument(app).expose(app, include_in_schema=False, endpoint="/metrics")
+app.include_router(router_api)
 
 
 class AppState:

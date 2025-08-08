@@ -16,11 +16,18 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      - SNAPSHOT_S3_ENDPOINT=${SNAPSHOT_S3_ENDPOINT:-http://minio:9000}
+      - SNAPSHOT_S3_BUCKET=${SNAPSHOT_S3_BUCKET:-snapshots}
+      - SNAPSHOT_S3_ACCESS_KEY=${SNAPSHOT_S3_ACCESS_KEY:-admin}
+      - SNAPSHOT_S3_SECRET_KEY=${SNAPSHOT_S3_SECRET_KEY:-adminadmin}
+      - SNAPSHOT_SOURCE_URL=${SNAPSHOT_SOURCE_URL:-http://sim:8100/sim/camera/{id}/frame}
     volumes:
       - ./configs:/configs:ro
     depends_on:
       - mosquitto
       - sim
+      - minio
     ports:
       - "8000:8000"
 
@@ -36,14 +43,16 @@ services:
       - core
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:10.4.3
     container_name: smarthouse-grafana
     restart: unless-stopped
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
     volumes:
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./infra/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./infra/grafana/dashboards:/etc/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     ports:
       - "3000:3000"
@@ -61,6 +70,25 @@ services:
       - mosquitto
     ports:
       - "8100:8100"
+
+  minio:
+    image: minio/minio:latest
+    container_name: smarthouse-minio
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=adminadmin
+    volumes:
+      - ./infra/minio/data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
 
 volumes:
   mosquitto_data:

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "armed_motion_alarm",
+    "type": "sensor",
+    "condition": {"sensor_id": "motion_hall", "equals": {"value": true}},
+    "guards": {"debounce_ms": 500, "retry": {"max": 3, "backoff_ms": 300}},
+    "actions": [
+      {"tool": "siren_on", "args": {"device_id": "siren_main"}},
+      {"tool": "lock_door", "args": {"device_id": "front_door_lock"}}
+    ],
+    "safety": {"confirm": true}
+  },
+  {
+    "id": "door_open_timeout_alarm",
+    "type": "sensor",
+    "condition": {"sensor_id": "door_front", "equals": {"state": "open"}, "for": "PT00M30S"},
+    "guards": {"debounce_ms": 500, "retry": {"max": 3, "backoff_ms": 300}},
+    "actions": [
+      {"tool": "siren_on", "args": {"device_id": "siren_main"}},
+      {"tool": "lock_door", "args": {"device_id": "front_door_lock"}}
+    ],
+    "safety": {"confirm": true}
+  }
+]
+
+

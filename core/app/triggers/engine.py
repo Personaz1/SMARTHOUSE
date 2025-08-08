@@ -81,12 +81,12 @@ class TriggerEngine:
             if "sensor_id" in cond:
                 sensor_id = cond.get("sensor_id")
                 sensor_state = snapshot.get("devices", {}).get(sensor_id)
-                ok = self._subset_match(equals, sensor_state or {})
+                ok = self._deep_match(equals, sensor_state or {})
             elif "topic" in cond:
                 # For now, read last event cached as a device by topic name if present
                 topic = cond.get("topic")
                 sensor_state = snapshot.get("devices", {}).get(topic)
-                ok = self._subset_match(equals, sensor_state or {})
+                ok = self._deep_match(equals, sensor_state or {})
             after = cond.get("after")
             if after and not self._is_after_localtime(after):
                 ok = False
@@ -146,14 +146,21 @@ class TriggerEngine:
         h, m = map(int, hhmm.split(":"))
         return (now.hour, now.minute) >= (h, m)
 
-    def _subset_match(self, expected: Dict[str, Any], actual: Dict[str, Any]) -> bool:
-        try:
-            for k, v in expected.items():
+    def _deep_match(self, expected: Dict[str, Any], actual: Dict[str, Any]) -> bool:
+        if expected is None:
+            return True
+        if not isinstance(expected, dict) or not isinstance(actual, dict):
+            return expected == actual
+        for k, v in expected.items():
+            if k not in actual:
+                return False
+            if isinstance(v, dict):
+                if not self._deep_match(v, actual.get(k)):
+                    return False
+            else:
                 if actual.get(k) != v:
                     return False
-            return True
-        except Exception:
-            return False
+        return True
 
     def _parse_iso8601_duration(self, s: str) -> float:
         # minimal PTxxMxxS parser

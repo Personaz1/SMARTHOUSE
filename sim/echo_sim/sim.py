@@ -44,10 +44,10 @@ async def handle_messages(client: Client) -> None:
                     "ts": time.time(),
                 }
                 if "brightness" in payload:
-                    # quantize to nearest 5
-                    b = int(payload["brightness"]) + random.randint(-3, 3)
+                    # deterministic quantization down to bucket of 5
+                    b = int(payload["brightness"]) 
                     b = max(0, min(100, b))
-                    q = int(round(b / 5.0) * 5)
+                    q = int((b // 5) * 5)
                     state["brightness"] = q
             elif payload.get("type") == "lock":
                 state = {"type": "lock", "state": payload.get("state", "UNLOCKED"), "ts": time.time()}
@@ -72,9 +72,21 @@ async def handle_messages(client: Client) -> None:
                 await client.publish(state_topic, json.dumps(state).encode("utf-8"), qos=1)
 
 
+async def emit_motion(client: Client) -> None:
+    while True:
+        await asyncio.sleep(3.0)
+        event = {
+            "kind": "motion",
+            "bbox": [1, 2, 3, 4],
+            "confidence": round(random.uniform(0.85, 0.99), 2),
+            "ts": time.time(),
+        }
+        await client.publish("vision/events/cam_living", json.dumps(event).encode("utf-8"), qos=0)
+
+
 async def main() -> None:
     async with Client(hostname=MQTT_HOST, port=MQTT_PORT) as client:
-        await handle_messages(client)
+        await asyncio.gather(handle_messages(client), emit_motion(client))
 
 
 if __name__ == "__main__":

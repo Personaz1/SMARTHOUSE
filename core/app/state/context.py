@@ -65,6 +65,7 @@ class HomeContextManager:
         await self._client.__aenter__()
         async with self._client.messages() as messages:
             await self._client.subscribe("home/#", qos=1)
+            await self._client.subscribe("vision/events/#", qos=1)
             async for message in messages:
                 raw_topic = getattr(message, "topic", "")
                 topic = raw_topic.value if hasattr(raw_topic, "value") else raw_topic
@@ -77,6 +78,13 @@ class HomeContextManager:
 
     async def _ingest(self, topic: str, data: Dict[str, Any]) -> None:
         parts = topic.split("/")
+        if parts[0] == "vision" and parts[1] == "events":
+            entity_id = f"{parts[0]}/{parts[1]}/{parts[2]}"
+            async with self._lock:
+                self._state["devices"][entity_id] = data
+                self._state["ts"] = time.time()
+            return
+
         if len(parts) < 4:
             return
         kind, _, entity_id, path = parts[0], parts[1], parts[2], parts[3]
@@ -86,7 +94,6 @@ class HomeContextManager:
                     self._state["devices"][entity_id] = {}
                 self._state["devices"][entity_id] = data
                 self._state["ts"] = time.time()
-                # update zone view if room known
                 device_meta = self._registry.get(entity_id)
                 if device_meta:
                     room = device_meta.get("room")
@@ -104,7 +111,6 @@ class HomeContextManager:
                                 zone["presence"] = bool(data.get("value"))
                             if data.get("type") == "illuminance":
                                 zone["illuminance"] = data.get("lux")
-                        # extend with more mappings as needed
 
     async def upsert_device_state(self, entity_id: str, data: Dict[str, Any]) -> None:
         async with self._lock:

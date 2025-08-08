@@ -1,0 +1,23 @@
+services:
+  core:
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=info
+      - PROM_SCRAPE=true
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1G
+  mosquitto:
+    restart: unless-stopped
+  sim:
+    profiles: ["dev"]
+  grafana:
+    restart: unless-stopped
+  prometheus:
+    restart: unless-stopped
+  minio:
+    restart: unless-stopped
+
+

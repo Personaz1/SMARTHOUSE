@@ -6,5 +6,7 @@ aiomqtt==1.2.1
 prometheus-fastapi-instrumentator==6.1.0
 jsonschema==4.23.0
 python-dotenv==1.0.1
+minio==7.2.12
+aiohttp==3.10.11
 
 

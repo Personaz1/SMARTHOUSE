@@ -1,12 +1,30 @@
 from typing import Any, Dict, Optional
 
 from ..integration.mqtt_client import AsyncMqttClient
+import os
+import time
+import aiohttp
+import asyncio
+from minio import Minio
+from minio.error import S3Error
 
 
 class SmartHomeTools:
     def __init__(self, mqtt: AsyncMqttClient, devices: Dict[str, Dict[str, Any]]):
         self._mqtt = mqtt
         self._devices = devices
+        # S3 client for snapshots
+        endpoint = os.getenv("SNAPSHOT_S3_ENDPOINT")
+        access_key = os.getenv("SNAPSHOT_S3_ACCESS_KEY")
+        secret_key = os.getenv("SNAPSHOT_S3_SECRET_KEY")
+        self._snapshot_bucket = os.getenv("SNAPSHOT_S3_BUCKET", "snapshots")
+        self._snapshot_source = os.getenv("SNAPSHOT_SOURCE_URL", "http://sim:8100/sim/camera/{id}/frame")
+        self._s3: Optional[Minio] = None
+        if endpoint and access_key and secret_key:
+            # strip http:// if present for Minio client
+            secure = endpoint.startswith("https://")
+            clean = endpoint.replace("https://", "").replace("http://", "")
+            self._s3 = Minio(clean, access_key=access_key, secret_key=secret_key, secure=secure)
 
     def _device(self, device_id: str) -> Dict[str, Any]:
         if device_id not in self._devices:
@@ -218,8 +236,21 @@ class SmartHomeTools:
         )
 
     async def camera_snapshot(self, device_id: str) -> Any:
-        # Placeholder: real implementation will call SimBridge/RTSP pipeline
-        return {"device_id": device_id, "snapshot": None}
+        if not self._s3:
+            return {"device_id": device_id, "snapshot": None}
+        url = self._snapshot_source.replace("{id}", device_id)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                resp.raise_for_status()
+                data = await resp.read()
+        ts = int(time.time())
+        key = f"{device_id}/{ts}.jpg"
+        # upload to S3 (MinIO)
+        from io import BytesIO
+        bio = BytesIO(data)
+        bio.seek(0)
+        self._s3.put_object(self._snapshot_bucket, key, bio, length=len(data), content_type="image/jpeg")
+        return {"bucket": self._snapshot_bucket, "key": key}
 
     async def camera_stream_info(self, device_id: str) -> Any:
         return {"device_id": device_id, "stream": None}
