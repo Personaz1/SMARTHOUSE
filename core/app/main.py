@@ -1,4 +1,5 @@
 import os
+import asyncio
 import time
 import uuid
 from typing import Any, Dict, Optional
@@ -32,6 +33,8 @@ from .api_router import router as router_api
 from .events import bus, format_sse
 from .analysis.analyzer import BackgroundAnalyzer
 from .storage.db import EventStore
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 
 app = FastAPI(title="ΔΣ Guardian Core", version="0.1.0")
@@ -49,6 +52,10 @@ app.include_router(router_api)
 static_dir = Path(os.getenv("STATIC_DIR", "/configs/static"))
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+# serve configs as /cfg for UI assets (floorplan)
+cfg_dir = Path("/configs")
+if cfg_dir.exists():
+    app.mount("/cfg", StaticFiles(directory=str(cfg_dir)), name="cfg")
 
 
 class AppState:
@@ -140,10 +147,27 @@ async def ui_stream() -> StreamingResponse:
 @app.get("/chat/stream")
 async def chat_stream(q: str) -> StreamingResponse:
     async def gen():
-        text = f"Ответ на: {q}"
+        # Build lightweight system context for natural-language summary
+        snap = state.context.snapshot() if state.context else {}
+        events = []
+        try:
+            if state.store:
+                events = await state.store.recent(limit=20)
+        except Exception:
+            events = []
+        devices_count = len(snap.get("devices", {}))
+        zones_count = len(snap.get("zones", {}))
+        sec_mode = snap.get("security_mode", "unknown")
+        # Compose a natural response (stub; replace with Router backend later)
+        preface = (
+            f"Я вижу {devices_count} устройств в {zones_count} зонах. "
+            f"Режим охраны: {sec_mode}. "
+        )
+        recent = ", ".join([e.get("type", "event") for e in events[-5:]]) or "без недавних событий"
+        text = preface + f"Последние события: {recent}. Запрос: {q}"
         for token in text.split(" "):
             yield format_sse("chunk", {"text": token + " "})
-            await asyncio.sleep(0.02)
+            await asyncio.sleep(0.015)
         yield format_sse("done", {"ok": True})
     return StreamingResponse(gen(), media_type="text/event-stream")
 

@@ -1,6 +1,7 @@
 import React from 'react'
 import { useStore } from '../store'
 import { Floorplan } from './Floorplan'
+import { World3D } from './World3D'
 
 export function ConsoleView() {
   const devices = useStore((s) => s.devices)
@@ -8,7 +9,9 @@ export function ConsoleView() {
   const events = useStore((s) => s.events)
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <div className="lg:col-span-2 border rounded p-3">
+      <div className="lg:col-span-2 border rounded p-3 space-y-3">
+        <h2 className="font-medium mb-2">World</h2>
+        <World3D />
         <h2 className="font-medium mb-2">Floorplan</h2>
         <Floorplan />
       </div>
