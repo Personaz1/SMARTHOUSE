@@ -1,4 +1,5 @@
 from typing import Any, Dict, Optional
+from datetime import timedelta
 
 from ..integration.mqtt_client import AsyncMqttClient
 import os
@@ -267,5 +268,12 @@ class SmartHomeTools:
 
     async def delete_rule(self, rule_id: str) -> Any:
         raise NotImplementedError("Rules managed via API/TriggerEngine")
+
+    async def get_snapshot_url(self, device_id: str, expires_seconds: int = 300) -> Any:
+        if not self._s3:
+            return {"url": None}
+        key = f"{device_id}/last.jpg"
+        url = self._s3.presigned_get_object(self._snapshot_bucket, key, expires=expires_seconds)
+        return {"bucket": self._snapshot_bucket, "key": key, "url": url}
 
 

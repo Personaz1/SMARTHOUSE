@@ -5,6 +5,8 @@ from typing import Any, Dict, Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -42,6 +44,9 @@ app.add_middleware(
 )
 Instrumentator().instrument(app).expose(app, include_in_schema=False, endpoint="/metrics")
 app.include_router(router_api)
+static_dir = Path(os.getenv("STATIC_DIR", "/configs/static"))
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 
 class AppState:
@@ -133,6 +138,14 @@ async def health() -> Dict[str, Any]:
 @app.get("/state")
 async def get_state() -> Dict[str, Any]:
     return state.context.snapshot() if state.context else {}
+
+
+@app.get("/tools/camera_snapshot_url")
+async def tool_camera_snapshot_url(camera_id: str) -> Dict[str, Any]:
+    if state.tools is None:
+        raise HTTPException(status_code=503, detail="Tools not initialized")
+    res = await state.tools.get_snapshot_url(camera_id)
+    return res
 
 
 @app.post("/agent/command")

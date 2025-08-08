@@ -9,7 +9,7 @@ services:
       - mosquitto_log:/mosquitto/log
     ports:
       - "1883:1883"
-      - "9001:9001"
+      - "1884:9001"
 
   core:
     build: ./core
@@ -68,7 +68,7 @@ services:
     environment:
       - VITE_API_BASE=http://core:8000
     ports:
-      - "8080:8080"
+      - "8080:80"
     depends_on:
       - core
 
