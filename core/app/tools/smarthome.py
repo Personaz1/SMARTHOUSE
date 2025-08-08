@@ -263,6 +263,33 @@ class SmartHomeTools:
         topic = f"home/sensor/{sensor_id}/state"
         return await self._mqtt.wait_for_state(topic, timeout=timeout)
 
+    async def analyze_snapshot(self, camera_id: str, prompt: str) -> Any:
+        # Take snapshot to S3 or return URL, then run analysis if local file exists
+        snap = await self.camera_snapshot(camera_id)
+        # If running without S3, just return metadata
+        result: Dict[str, Any] = {"snapshot": snap}
+        # Optionally download last.jpg and analyze
+        try:
+            import tempfile, httpx, os
+            from . .llm.vision import analyze_with_gemini
+            url = snap.get("url") or None
+            if not url and self._s3:
+                # presign
+                url = self._s3.presigned_get_object(self._snapshot_bucket, f"{camera_id}/last.jpg", expires=300)
+            if url:
+                async with httpx.AsyncClient() as client:
+                    r = await client.get(url)
+                    r.raise_for_status()
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tf:
+                        tf.write(r.content)
+                        tmp = tf.name
+                text = analyze_with_gemini(tmp, prompt)
+                os.unlink(tmp)
+                result["analysis"] = text
+        except Exception:
+            pass
+        return result
+
     async def create_automation_rule(self, rule: Dict[str, Any]) -> Any:
         raise NotImplementedError("Rules managed via API/TriggerEngine")
 

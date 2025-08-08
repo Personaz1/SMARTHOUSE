@@ -146,7 +146,7 @@ async def ui_stream() -> StreamingResponse:
 
 
 @app.get("/chat/stream")
-async def chat_stream(q: str) -> StreamingResponse:
+async def chat_stream(q: str, exec: bool = True) -> StreamingResponse:
     async def gen():
         snap = state.context.snapshot() if state.context else {}
         events = []
@@ -163,6 +163,16 @@ async def chat_stream(q: str) -> StreamingResponse:
         for token in text.split(" "):
             yield format_sse("chunk", {"text": token + " "})
             await asyncio.sleep(0.01)
+        # Optional intent execution via Supervisor (idempotent demo path)
+        if exec and state.supervisor:
+            try:
+                plan = await state.supervisor.plan_from_intent(q)
+                if plan:
+                    yield format_sse("chunk", {"text": "\n[Действия] запланировано: " + str(plan) + "\n"})
+                    steps = await state.supervisor.execute_plan(plan, dry_run=False, require_confirm=False)
+                    yield format_sse("chunk", {"text": "[Выполнено] " + str(steps) + "\n"})
+            except Exception as e:
+                yield format_sse("chunk", {"text": f"[Ошибка при выполнении действий] {e}\n"})
         yield format_sse("done", {"ok": True})
     return StreamingResponse(gen(), media_type="text/event-stream")
 
@@ -435,6 +445,21 @@ async def tool_camera_snapshot(payload: CameraSnapshotReq, request: Request) -> 
     state.audit.log(actor="api", role=role, action="camera_snapshot", args=payload.model_dump(), result="ok", latency_ms=latency_ms, trace_id=None)
     tool_calls_total.labels(tool="camera_snapshot", result="ok").inc()
     tool_call_latency_ms.labels(tool="camera_snapshot").observe(latency_ms)
+    return {"result": res}
+
+
+@app.post("/tools/camera_analyze")
+async def tool_camera_analyze(payload: CameraSnapshotReq, request: Request) -> Dict[str, Any]:
+    if state.tools is None:
+        raise HTTPException(status_code=503, detail="Tools not initialized")
+    role = request.headers.get("X-Role", "admin")
+    prompt = request.headers.get("X-Prompt", "Опиши сцену кратко по фактам.")
+    start = time.time()
+    res = await state.tools.analyze_snapshot(payload.camera_id, prompt)
+    latency_ms = (time.time() - start) * 1000
+    state.audit.log(actor="api", role=role, action="camera_analyze", args=payload.model_dump(), result="ok", latency_ms=latency_ms, trace_id=None)
+    tool_calls_total.labels(tool="camera_analyze", result="ok").inc()
+    tool_call_latency_ms.labels(tool="camera_analyze").observe(latency_ms)
     return {"result": res}
 
 
