@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RulesSchema",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "type", "actions"],
+    "properties": {
+      "id": {"type": "string"},
+      "type": {"enum": ["time", "sensor", "behavior"]},
+      "condition": {"type": "object"},
+      "after": {"type": "string"},
+      "actions": {"type": "array"},
+      "safety": {"type": "object"}
+    }
+  }
+}
+
+

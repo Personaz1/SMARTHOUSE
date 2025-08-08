@@ -1,0 +1,70 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: smarthouse-mosquitto
+    restart: unless-stopped
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    ports:
+      - "1883:1883"
+
+  core:
+    build: ./core
+    container_name: smarthouse-core
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./configs:/configs:ro
+    depends_on:
+      - mosquitto
+      - sim
+    ports:
+      - "8000:8000"
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: smarthouse-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - core
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: smarthouse-grafana
+    restart: unless-stopped
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+  sim:
+    build: ./sim/echo_sim
+    container_name: smarthouse-sim
+    restart: unless-stopped
+    environment:
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+    depends_on:
+      - mosquitto
+    ports:
+      - "8100:8100"
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:
+  grafana_data:
+
+

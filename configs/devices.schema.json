@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DevicesSchema",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "type", "protocol", "capabilities"],
+    "properties": {
+      "id": {"type": "string"},
+      "type": {"enum": ["light", "lock", "cover", "switch", "thermostat", "camera", "axis", "sensor"]},
+      "room": {"type": "string"},
+      "protocol": {"enum": ["mqtt", "ros2", "rtsp", "modbus", "rest"]},
+      "capabilities": {"type": "array", "items": {"type": "string"}},
+      "topics": {"type": "object"},
+      "rtsp": {"type": "object"},
+      "ros2": {"type": "object"},
+      "safety_class": {"enum": ["low", "medium", "high", "critical"]}
+    }
+  }
+}
+
+

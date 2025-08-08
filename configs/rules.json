@@ -1,0 +1,14 @@
+[
+  {
+    "id": "rule_night_hall_motion",
+    "type": "sensor",
+    "condition": {"sensor_id": "motion_hall", "equals": {"value": true}, "after": "22:00"},
+    "actions": [
+      {"tool": "control_light", "args": {"device_id": "light_living_main", "state": true, "brightness": 30}},
+      {"tool": "notify", "args": {"text": "Night motion in hall; light set to 30%"}}
+    ],
+    "safety": {"confirm": false, "rate_limit_per_min": 2}
+  }
+]
+
+

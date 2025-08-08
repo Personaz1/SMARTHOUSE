@@ -1,0 +1,28 @@
+[
+  {
+    "id": "light_living_main",
+    "type": "light",
+    "room": "living",
+    "protocol": "mqtt",
+    "capabilities": ["on_off", "brightness"],
+    "topics": {
+      "set": "home/device/light_living_main/set",
+      "state": "home/device/light_living_main/state"
+    },
+    "safety_class": "low"
+  },
+  {
+    "id": "front_door_lock",
+    "type": "lock",
+    "room": "entrance",
+    "protocol": "mqtt",
+    "capabilities": ["lock", "unlock", "state"],
+    "topics": {
+      "set": "home/device/front_door_lock/set",
+      "state": "home/device/front_door_lock/state"
+    },
+    "safety_class": "critical"
+  }
+]
+
+

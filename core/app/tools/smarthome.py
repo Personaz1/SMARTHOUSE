@@ -1,0 +1,237 @@
+from typing import Any, Dict, Optional
+
+from ..integration.mqtt_client import AsyncMqttClient
+
+
+class SmartHomeTools:
+    def __init__(self, mqtt: AsyncMqttClient, devices: Dict[str, Dict[str, Any]]):
+        self._mqtt = mqtt
+        self._devices = devices
+
+    def _device(self, device_id: str) -> Dict[str, Any]:
+        if device_id not in self._devices:
+            raise KeyError(f"Unknown device_id: {device_id}")
+        return self._devices[device_id]
+
+    def _set_topic(self, device_id: str) -> str:
+        return self._device(device_id)["topics"]["set"]
+
+    def _state_topic(self, device_id: str) -> str:
+        return self._device(device_id)["topics"]["state"]
+
+    async def get_device_status(self, device_id: str, timeout: float = 1.0) -> Any:
+        state_topic = self._state_topic(device_id)
+        return await self._mqtt.wait_for_state(state_topic, timeout=timeout)
+
+    async def control_light(
+        self, device_id: str, state: bool, brightness: Optional[int] = None
+    ) -> Any:
+        device = self._device(device_id)
+        if device.get("type") != "light":
+            raise ValueError(f"Device {device_id} is not a light")
+
+        payload: Dict[str, Any] = {
+            "type": "light",
+            "state": "ON" if state else "OFF",
+        }
+        if brightness is not None:
+            payload["brightness"] = int(max(0, min(100, brightness)))
+
+        def match(s: Dict[str, Any]) -> bool:
+            if s.get("type") != "light":
+                return False
+            if brightness is not None and "brightness" in s:
+                return s.get("state") == payload["state"] and abs(s.get("brightness", -1) - payload["brightness"]) <= 5
+            return s.get("state") == payload["state"]
+
+        return await self._mqtt.publish_and_wait(
+            set_topic=self._set_topic(device_id),
+            payload=payload,
+            state_topic=self._state_topic(device_id),
+            match=match,
+        )
+
+    async def emit_sensor(self, sensor_id: str, value: Any) -> None:
+        # helper for tests/simulated sensors
+        await self._mqtt.publish_without_wait(
+            topic=f"home/sensor/{sensor_id}/state",
+            payload={"type": "generic", "value": value},
+        )
+
+    async def lock_door(self, device_id: str) -> Any:
+        device = self._device(device_id)
+        if device.get("type") != "lock":
+            raise ValueError(f"Device {device_id} is not a lock")
+
+        payload = {"type": "lock", "state": "LOCKED"}
+
+        def match(s: Dict[str, Any]) -> bool:
+            return s.get("type") == "lock" and s.get("state") == "LOCKED"
+
+        return await self._mqtt.publish_and_wait(
+            set_topic=self._set_topic(device_id),
+            payload=payload,
+            state_topic=self._state_topic(device_id),
+            match=match,
+        )
+
+    async def unlock_door(self, device_id: str) -> Any:
+        device = self._device(device_id)
+        if device.get("type") != "lock":
+            raise ValueError(f"Device {device_id} is not a lock")
+
+        payload = {"type": "lock", "state": "UNLOCKED"}
+
+        def match(s: Dict[str, Any]) -> bool:
+            return s.get("type") == "lock" and s.get("state") == "UNLOCKED"
+
+        return await self._mqtt.publish_and_wait(
+            set_topic=self._set_topic(device_id),
+            payload=payload,
+            state_topic=self._state_topic(device_id),
+            match=match,
+        )
+
+    async def cover_set_position(self, device_id: str, position: int) -> Any:
+        device = self._device(device_id)
+        if device.get("type") != "cover":
+            raise ValueError(f"Device {device_id} is not a cover")
+        position = int(max(0, min(100, position)))
+        payload = {"type": "cover", "position": position}
+
+        def match(s: Dict[str, Any]) -> bool:
+            return s.get("type") == "cover" and abs(int(s.get("position", -1)) - position) <= 2
+
+        return await self._mqtt.publish_and_wait(
+            set_topic=self._set_topic(device_id),
+            payload=payload,
+            state_topic=self._state_topic(device_id),
+            match=match,
+        )
+
+    async def switch_on(self, device_id: str) -> Any:
+        device = self._device(device_id)
+        if device.get("type") != "switch":
+            raise ValueError(f"Device {device_id} is not a switch")
+        payload = {"type": "switch", "state": "ON"}
+
+        def match(s: Dict[str, Any]) -> bool:
+            return s.get("type") == "switch" and s.get("state") == "ON"
+
+        return await self._mqtt.publish_and_wait(
+            set_topic=self._set_topic(device_id),
+            payload=payload,
+            state_topic=self._state_topic(device_id),
+            match=match,
+        )
+
+    async def switch_off(self, device_id: str) -> Any:
+        device = self._device(device_id)
+        if device.get("type") != "switch":
+            raise ValueError(f"Device {device_id} is not a switch")
+        payload = {"type": "switch", "state": "OFF"}
+
+        def match(s: Dict[str, Any]) -> bool:
+            return s.get("type") == "switch" and s.get("state") == "OFF"
+
+        return await self._mqtt.publish_and_wait(
+            set_topic=self._set_topic(device_id),
+            payload=payload,
+            state_topic=self._state_topic(device_id),
+            match=match,
+        )
+
+    async def set_thermostat(self, device_id: str, temperature: float) -> Any:
+        device = self._device(device_id)
+        if device.get("type") != "thermostat":
+            raise ValueError(f"Device {device_id} is not a thermostat")
+        temperature = float(temperature)
+        payload = {"type": "thermostat", "target": temperature}
+
+        def match(s: Dict[str, Any]) -> bool:
+            return s.get("type") == "thermostat" and abs(float(s.get("target", -9999)) - temperature) <= 0.5
+
+        return await self._mqtt.publish_and_wait(
+            set_topic=self._set_topic(device_id),
+            payload=payload,
+            state_topic=self._state_topic(device_id),
+            match=match,
+        )
+
+    async def siren_on(self, device_id: str) -> Any:
+        device = self._device(device_id)
+        if device.get("type") != "siren":
+            raise ValueError(f"Device {device_id} is not a siren")
+        payload = {"type": "siren", "state": "ON"}
+
+        def match(s: Dict[str, Any]) -> bool:
+            return s.get("type") == "siren" and s.get("state") == "ON"
+
+        return await self._mqtt.publish_and_wait(
+            set_topic=self._set_topic(device_id),
+            payload=payload,
+            state_topic=self._state_topic(device_id),
+            match=match,
+        )
+
+    async def siren_off(self, device_id: str) -> Any:
+        device = self._device(device_id)
+        if device.get("type") != "siren":
+            raise ValueError(f"Device {device_id} is not a siren")
+        payload = {"type": "siren", "state": "OFF"}
+
+        def match(s: Dict[str, Any]) -> bool:
+            return s.get("type") == "siren" and s.get("state") == "OFF"
+
+        return await self._mqtt.publish_and_wait(
+            set_topic=self._set_topic(device_id),
+            payload=payload,
+            state_topic=self._state_topic(device_id),
+            match=match,
+        )
+
+    async def arm_security(self, mode: str) -> Any:
+        # Security aggregate topic; devices may be virtualized
+        payload = {"type": "security", "mode": mode}
+
+        def match(s: Dict[str, Any]) -> bool:
+            return s.get("type") == "security" and s.get("mode") == mode
+
+        return await self._mqtt.publish_and_wait(
+            set_topic="home/security/set",
+            payload=payload,
+            state_topic="home/security/state",
+            match=match,
+        )
+
+    async def disarm_security(self) -> Any:
+        payload = {"type": "security", "mode": "disarmed"}
+
+        def match(s: Dict[str, Any]) -> bool:
+            return s.get("type") == "security" and s.get("mode") == "disarmed"
+
+        return await self._mqtt.publish_and_wait(
+            set_topic="home/security/set",
+            payload=payload,
+            state_topic="home/security/state",
+            match=match,
+        )
+
+    async def camera_snapshot(self, device_id: str) -> Any:
+        # Placeholder: real implementation will call SimBridge/RTSP pipeline
+        return {"device_id": device_id, "snapshot": None}
+
+    async def camera_stream_info(self, device_id: str) -> Any:
+        return {"device_id": device_id, "stream": None}
+
+    async def get_sensor_data(self, sensor_id: str, timeout: float = 1.0) -> Any:
+        topic = f"home/sensor/{sensor_id}/state"
+        return await self._mqtt.wait_for_state(topic, timeout=timeout)
+
+    async def create_automation_rule(self, rule: Dict[str, Any]) -> Any:
+        raise NotImplementedError("Rules managed via API/TriggerEngine")
+
+    async def delete_rule(self, rule_id: str) -> Any:
+        raise NotImplementedError("Rules managed via API/TriggerEngine")
+
+
