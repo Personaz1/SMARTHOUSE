@@ -29,7 +29,6 @@ services:
       - core_data:/data
     depends_on:
       - mosquitto
-      - minio
     ports:
       - "8000:8000"
 
