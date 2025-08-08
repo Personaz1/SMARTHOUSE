@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="320" viewBox="0 0 480 320">
+  <rect x="10" y="10" width="220" height="140" fill="#f7f7f7" stroke="#ccc" />
+  <text x="20" y="30" font-size="12" fill="#666">Living</text>
+  <rect x="250" y="10" width="220" height="140" fill="#f7f7f7" stroke="#ccc" />
+  <text x="260" y="30" font-size="12" fill="#666">Entrance</text>
+  <rect x="10" y="170" width="460" height="140" fill="#f7f7f7" stroke="#ccc" />
+  <text x="20" y="190" font-size="12" fill="#666">Hall</text>
+</svg>
+
+

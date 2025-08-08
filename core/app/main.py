@@ -31,6 +31,7 @@ from .metrics import rules_version
 from .api_router import router as router_api
 from .events import bus, format_sse
 from .analysis.analyzer import BackgroundAnalyzer
+from .storage.db import EventStore
 
 
 app = FastAPI(title="ΔΣ Guardian Core", version="0.1.0")
@@ -62,6 +63,7 @@ class AppState:
     triggers: Optional[TriggerEngine] = None
     supervisor: Optional[Supervisor] = None
     analyzer: Optional[BackgroundAnalyzer] = None
+    store: Optional[EventStore] = None
     boot_ts: float = time.time()
 
 
@@ -103,6 +105,8 @@ async def on_startup() -> None:
     state.supervisor = Supervisor(state.tools)
     state.analyzer = BackgroundAnalyzer(state.context)
     await state.analyzer.start()
+    state.store = EventStore(path=os.getenv("DB_PATH", "/data/core.db"))
+    await state.store.start(bus)
     # announce startup
     await bus.publish({"type": "state_update", "snapshot": state.context.snapshot()})
 
@@ -117,6 +121,8 @@ async def on_shutdown() -> None:
         await state.triggers.stop()
     if state.analyzer is not None:
         await state.analyzer.stop()
+    if state.store is not None:
+        await state.store.stop()
     state.supervisor = None
 
 
@@ -140,6 +146,14 @@ async def chat_stream(q: str) -> StreamingResponse:
             await asyncio.sleep(0.02)
         yield format_sse("done", {"ok": True})
     return StreamingResponse(gen(), media_type="text/event-stream")
+
+
+@app.get("/history/events")
+async def history_events(limit: int = 200, etype: Optional[str] = None) -> Dict[str, Any]:
+    if state.store is None:
+        raise HTTPException(status_code=503, detail="Store not ready")
+    rows = await state.store.recent(limit=limit, etype=etype)
+    return {"events": rows}
 
 
 @app.get("/health")

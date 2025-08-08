@@ -26,6 +26,7 @@ services:
       - UI_CORS_ORIGINS=${UI_CORS_ORIGINS:-http://localhost:8080,http://ui:8080}
     volumes:
       - ./configs:/configs:ro
+      - core_data:/data
     depends_on:
       - mosquitto
       - minio
@@ -109,5 +110,6 @@ volumes:
   mosquitto_data:
   mosquitto_log:
   grafana_data:
+  core_data:
 
 

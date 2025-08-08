@@ -1,5 +1,6 @@
 import React from 'react'
 import { useStore } from '../store'
+import { Floorplan } from './Floorplan'
 
 export function ConsoleView() {
   const devices = useStore((s) => s.devices)
@@ -8,8 +9,8 @@ export function ConsoleView() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="lg:col-span-2 border rounded p-3">
-        <h2 className="font-medium">Floorplan</h2>
-        <div className="text-xs text-neutral-500">SVG floorplan will render here.</div>
+        <h2 className="font-medium mb-2">Floorplan</h2>
+        <Floorplan />
       </div>
       <div className="border rounded p-3">
         <h2 className="font-medium">Events</h2>
