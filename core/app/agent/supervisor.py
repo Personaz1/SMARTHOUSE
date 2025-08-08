@@ -2,6 +2,7 @@ import time
 from typing import Any, Dict, List
 
 from ..tools.smarthome import SmartHomeTools
+from ..events import bus
 from ..metrics import agent_step_latency_ms, critical_actions_total
 
 
@@ -41,7 +42,9 @@ class Supervisor:
                 if tool in CRITICAL_TOOLS:
                     self._critical_window.append(time.time())
                     critical_actions_total.labels(tool=tool).inc()
-                results.append({"tool": tool, "args": args, "status": "ok", "lat_ms": round(latency_ms, 2), "result": out})
+                step = {"tool": tool, "args": args, "status": "ok", "lat_ms": round(latency_ms, 2), "result": out}
+                results.append(step)
+                await bus.publish({"type": "agent_step", **step, "ts": time.time()})
             except Exception as e:
                 results.append({"tool": tool, "args": args, "status": "err", "error": str(e)})
                 break

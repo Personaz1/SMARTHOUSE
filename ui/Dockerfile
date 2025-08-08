@@ -1,19 +1,13 @@
-FROM node:20-alpine AS deps
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci || npm install
-
 FROM node:20-alpine AS build
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+COPY package.json package-lock.json* pnpm-lock.yaml* yarn.lock* ./
+RUN npm ci || npm install
 COPY . .
-RUN npm run build || npm run build
+RUN npm run build
 
-FROM node:20-alpine
-WORKDIR /app
-ENV NODE_ENV=production
-COPY --from=build /app ./
-EXPOSE 3000
-CMD ["npm","start"]
+FROM nginx:1.27-alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 8080
+CMD ["nginx", "-g", "daemon off;"]
 
 

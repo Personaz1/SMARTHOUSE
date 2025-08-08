@@ -33,5 +33,12 @@ class AuditLogger:
         }
         with self._file.open("a", encoding="utf-8") as f:
             f.write(json.dumps(entry, separators=(",", ":")) + "\n")
+        # Publish to UI bus best-effort
+        try:
+            from .events import bus  # local import to avoid cycle at import time
+            import asyncio
+            asyncio.create_task(bus.publish({"type": "audit_log", **entry}))
+        except Exception:
+            pass
 
 

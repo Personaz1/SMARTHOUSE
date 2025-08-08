@@ -9,6 +9,7 @@ services:
       - mosquitto_log:/mosquitto/log
     ports:
       - "1883:1883"
+      - "9001:9001"
 
   core:
     build: ./core
@@ -22,6 +23,7 @@ services:
       - SNAPSHOT_S3_ACCESS_KEY=${SNAPSHOT_S3_ACCESS_KEY:-admin}
       - SNAPSHOT_S3_SECRET_KEY=${SNAPSHOT_S3_SECRET_KEY:-adminadmin}
       - SNAPSHOT_SOURCE_URL=${SNAPSHOT_SOURCE_URL:-http://sim:8100/sim/camera/{id}/frame}
+      - UI_CORS_ORIGINS=${UI_CORS_ORIGINS:-http://localhost:8080,http://ui:8080}
     volumes:
       - ./configs:/configs:ro
     depends_on:
@@ -48,6 +50,7 @@ services:
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_SECURITY_ALLOW_EMBEDDING=true
     volumes:
       - ./infra/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ./infra/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
@@ -58,6 +61,17 @@ services:
     depends_on:
       - prometheus
 
+  ui:
+    build: ./ui
+    container_name: smarthouse-ui
+    restart: unless-stopped
+    environment:
+      - VITE_API_BASE=http://core:8000
+    ports:
+      - "8080:8080"
+    depends_on:
+      - core
+
   sim:
     build: ./sim/echo_sim
     container_name: smarthouse-sim
@@ -65,6 +79,8 @@ services:
     environment:
       - MQTT_HOST=mosquitto
       - MQTT_PORT=1883
+    profiles:
+      - dev
     depends_on:
       - mosquitto
     ports:

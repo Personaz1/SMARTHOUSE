@@ -1,0 +1,8 @@
+{
+  "anchors": [
+    {"id": "light_living_main", "x": 120, "y": 80, "room": "living"},
+    {"id": "front_door_lock", "x": 20, "y": 40, "room": "entrance"}
+  ]
+}
+
+

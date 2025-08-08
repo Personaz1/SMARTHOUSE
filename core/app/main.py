@@ -4,7 +4,8 @@ import uuid
 from typing import Any, Dict, Optional
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from .config import ConfigLoader
@@ -26,9 +27,19 @@ from .metrics import tool_calls_total, tool_call_latency_ms, agent_commands_tota
 from .agent.supervisor import Supervisor
 from .metrics import rules_version
 from .api_router import router as router_api
+from .events import bus, format_sse
 
 
 app = FastAPI(title="ΔΣ Guardian Core", version="0.1.0")
+# CORS for UI dev/prod hosts
+allowed_origins = os.getenv("UI_CORS_ORIGINS", "http://localhost:8080,http://ui:8080").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 Instrumentator().instrument(app).expose(app, include_in_schema=False, endpoint="/metrics")
 app.include_router(router_api)
 
@@ -83,6 +94,8 @@ async def on_startup() -> None:
     state.triggers = TriggerEngine(context=state.context, tools=state.tools, rules=state.rules or [])
     await state.triggers.start()
     state.supervisor = Supervisor(state.tools)
+    # announce startup
+    await bus.publish({"type": "state_update", "snapshot": state.context.snapshot()})
 
 
 @app.on_event("shutdown")
@@ -94,6 +107,17 @@ async def on_shutdown() -> None:
     if state.triggers is not None:
         await state.triggers.stop()
     state.supervisor = None
+
+
+@app.get("/ui/stream")
+async def ui_stream() -> StreamingResponse:
+    async def event_generator():
+        # heartbeat first
+        yield format_sse("heartbeat", {"ts": time.time()})
+        async for ev in bus.subscribe():
+            etype = ev.get("type", "event")
+            yield format_sse(etype, ev)
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 @app.get("/health")

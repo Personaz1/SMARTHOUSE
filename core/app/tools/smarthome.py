@@ -250,7 +250,10 @@ class SmartHomeTools:
         bio = BytesIO(data)
         bio.seek(0)
         self._s3.put_object(self._snapshot_bucket, key, bio, length=len(data), content_type="image/jpeg")
-        return {"bucket": self._snapshot_bucket, "key": key}
+        # also update last.jpg for quick previews
+        bio.seek(0)
+        self._s3.put_object(self._snapshot_bucket, f"{device_id}/last.jpg", bio, length=len(data), content_type="image/jpeg")
+        return {"bucket": self._snapshot_bucket, "key": key, "last": f"{device_id}/last.jpg"}
 
     async def camera_stream_info(self, device_id: str) -> Any:
         return {"device_id": device_id, "stream": None}

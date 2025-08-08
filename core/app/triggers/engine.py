@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 from ..state.context import HomeContextManager
 from ..tools.smarthome import SmartHomeTools
 from ..metrics import trigger_firings_total
+from ..events import bus
 
 
 class TriggerEngine:
@@ -129,6 +130,12 @@ class TriggerEngine:
         if throttle_per_min > 0:
             self._throttle_until[rule_id] = now_ms + (60000.0 / max(throttle_per_min, 1))
         trigger_firings_total.labels(rule_id=rule_id, result=("ok" if fired_ok else "err")).inc()
+        await bus.publish({
+            "type": "trigger_fired",
+            "rule_id": rule_id,
+            "result": ("ok" if fired_ok else "err"),
+            "ts": time.time(),
+        })
 
     async def _invoke_tool(self, tool: str, args: Dict[str, Any]) -> None:
         if tool == "control_light":

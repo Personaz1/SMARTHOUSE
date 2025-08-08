@@ -4,6 +4,7 @@ import time
 from typing import Any, Dict, Optional
 
 from aiomqtt import Client as MqttClient
+from ..events import bus
 
 
 class HomeContextManager:
@@ -83,6 +84,7 @@ class HomeContextManager:
             async with self._lock:
                 self._state["devices"][entity_id] = data
                 self._state["ts"] = time.time()
+            await bus.publish({"type": "vision_event", "topic": entity_id, "data": data, "ts": time.time()})
             return
 
         if len(parts) < 4:
@@ -111,6 +113,7 @@ class HomeContextManager:
                                 zone["presence"] = bool(data.get("value"))
                             if data.get("type") == "illuminance":
                                 zone["illuminance"] = data.get("lux")
+            await bus.publish({"type": "state_update", "snapshot": self._state.copy()})
 
     async def upsert_device_state(self, entity_id: str, data: Dict[str, Any]) -> None:
         async with self._lock:
