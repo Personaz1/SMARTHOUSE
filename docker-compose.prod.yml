@@ -4,6 +4,9 @@ services:
     environment:
       - LOG_LEVEL=info
       - PROM_SCRAPE=true
+    depends_on:
+      - mosquitto
+      - minio
     deploy:
       resources:
         limits:
