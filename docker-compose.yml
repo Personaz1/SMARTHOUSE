@@ -29,8 +29,6 @@ services:
       - core_data:/data
     depends_on:
       - mosquitto
-    ports:
-      - "8000:8000"
 
   prometheus:
     image: prom/prometheus:latest
