@@ -5,6 +5,7 @@ import './index.css'
 import { useStore } from './store'
 import { ConsoleView } from './components/Console'
 import { ChatPanel } from './components/Chat'
+import { Insights } from './components/Insights'
 
 const queryClient = new QueryClient()
 
@@ -53,7 +54,10 @@ function App() {
         <div className="text-sm text-neutral-600">devices/rules: {data?.devices}/{data?.rules}</div>
       </div>
       <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2"><ConsoleView /></div>
+        <div className="lg:col-span-2 space-y-4">
+          <ConsoleView />
+          <Insights />
+        </div>
         <div><ChatPanel /></div>
       </div>
     </div>

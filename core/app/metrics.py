@@ -59,3 +59,16 @@ rules_version = Gauge(
 )
 
 
+# Analysis metrics
+analysis_insights_total = Counter(
+    "analysis_insights_total",
+    "Number of analysis insights generated",
+    labelnames=("kind",),
+)
+
+analysis_ticks_total = Counter(
+    "analysis_ticks_total",
+    "Background analyzer ticks",
+)
+
+

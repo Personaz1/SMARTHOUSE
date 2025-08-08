@@ -30,6 +30,7 @@ from .agent.supervisor import Supervisor
 from .metrics import rules_version
 from .api_router import router as router_api
 from .events import bus, format_sse
+from .analysis.analyzer import BackgroundAnalyzer
 
 
 app = FastAPI(title="ΔΣ Guardian Core", version="0.1.0")
@@ -60,6 +61,7 @@ class AppState:
     audit: AuditLogger = AuditLogger()
     triggers: Optional[TriggerEngine] = None
     supervisor: Optional[Supervisor] = None
+    analyzer: Optional[BackgroundAnalyzer] = None
     boot_ts: float = time.time()
 
 
@@ -99,6 +101,8 @@ async def on_startup() -> None:
     state.triggers = TriggerEngine(context=state.context, tools=state.tools, rules=state.rules or [])
     await state.triggers.start()
     state.supervisor = Supervisor(state.tools)
+    state.analyzer = BackgroundAnalyzer(state.context)
+    await state.analyzer.start()
     # announce startup
     await bus.publish({"type": "state_update", "snapshot": state.context.snapshot()})
 
@@ -111,6 +115,8 @@ async def on_shutdown() -> None:
         await state.context.stop()
     if state.triggers is not None:
         await state.triggers.stop()
+    if state.analyzer is not None:
+        await state.analyzer.stop()
     state.supervisor = None
 
 
