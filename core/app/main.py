@@ -131,6 +131,17 @@ async def ui_stream() -> StreamingResponse:
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
+@app.get("/chat/stream")
+async def chat_stream(q: str) -> StreamingResponse:
+    async def gen():
+        text = f"Ответ на: {q}"
+        for token in text.split(" "):
+            yield format_sse("chunk", {"text": token + " "})
+            await asyncio.sleep(0.02)
+        yield format_sse("done", {"ok": True})
+    return StreamingResponse(gen(), media_type="text/event-stream")
+
+
 @app.get("/health")
 async def health() -> Dict[str, Any]:
     return {

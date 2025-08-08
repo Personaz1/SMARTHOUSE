@@ -10,8 +10,20 @@ export function ChatPanel() {
     const q = text
     setMsgs((m) => [...m, { role: 'user', content: q }])
     setText('')
-    // placeholder: echo back; wire to model router later
-    setMsgs((m) => [...m, { role: 'assistant', content: `Эхо: ${q}` }])
+    // stream from backend SSE endpoint
+    const url = (import.meta as any).env.VITE_API_BASE + '/chat/stream?q=' + encodeURIComponent(q)
+    const es = new EventSource(url)
+    es.addEventListener('chunk', (e) => {
+      const data = (e as MessageEvent).data as string
+      setMsgs((m) => {
+        const last = m[m.length - 1]
+        if (last && last.role === 'assistant') {
+          return [...m.slice(0, -1), { role: 'assistant', content: last.content + JSON.parse(data).text }]
+        }
+        return [...m, { role: 'assistant', content: JSON.parse(data).text }]
+      })
+    })
+    es.addEventListener('done', () => es.close())
   }
   return (
     <div className="border rounded p-3 h-full flex flex-col">
