@@ -271,7 +271,7 @@ class SmartHomeTools:
         # Optionally download last.jpg and analyze
         try:
             import tempfile, httpx, os
-            from . .llm.vision import analyze_with_gemini
+            from ..llm.vision import analyze_with_gemini, gv_labels, gv_objects, gv_ocr
             url = snap.get("url") or None
             if not url and self._s3:
                 # presign
@@ -283,8 +283,19 @@ class SmartHomeTools:
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tf:
                         tf.write(r.content)
                         tmp = tf.name
-                text = analyze_with_gemini(tmp, prompt)
+                facts = {
+                    "gv_labels": gv_labels(tmp) or [],
+                    "gv_objects": gv_objects(tmp) or [],
+                    "gv_ocr": gv_ocr(tmp) or "",
+                }
+                prompt2 = (
+                    f"Факты из Cloud Vision: labels={facts['gv_labels']}, objects={facts['gv_objects']}, "
+                    f"ocr={facts['gv_ocr'][:200]}...\n\n"
+                    f"Инструкция: {prompt}. Кратко, по пунктам, без дисклеймеров."
+                )
+                text = analyze_with_gemini(tmp, prompt2)
                 os.unlink(tmp)
+                result["facts"] = facts
                 result["analysis"] = text
         except Exception:
             pass
