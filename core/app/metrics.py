@@ -100,3 +100,18 @@ gemini_call_latency_ms = Histogram(
 )
 
 
+# Vision scanning
+vision_scans_total = Counter(
+    "vision_scans_total",
+    "Vision scans executed",
+    labelnames=("camera_id", "result"),
+)
+
+vision_scan_latency_ms = Histogram(
+    "vision_scan_latency_ms",
+    "Vision scan latency in ms",
+    labelnames=("camera_id",),
+    buckets=(100, 200, 400, 800, 1500, 3000, 5000, 10000, 20000),
+)
+
+

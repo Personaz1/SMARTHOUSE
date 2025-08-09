@@ -5,11 +5,13 @@ from typing import Any, Dict, Optional
 from ..state.context import HomeContextManager
 from ..events import bus
 from ..metrics import analysis_ticks_total, analysis_insights_total
+from ..tools.smarthome import SmartHomeTools
 
 
 class BackgroundAnalyzer:
-    def __init__(self, context: HomeContextManager) -> None:
+    def __init__(self, context: HomeContextManager, tools: Optional[SmartHomeTools] = None) -> None:
         self._context = context
+        self._tools = tools
         self._task: Optional[asyncio.Task] = None
 
     async def start(self) -> None:
@@ -45,5 +47,11 @@ class BackgroundAnalyzer:
                     }
                     analysis_insights_total.labels(kind="waste_light").inc()
                     await bus.publish(insight)
+            # Optional: light-weight periodic camera scan trigger (disabled by default)
+            # if self._tools and False:
+            #     try:
+            #         await self._tools.analyze_snapshot("cam_living", "Опиши сцену по фактам")
+            #     except Exception:
+            #         pass
 
 

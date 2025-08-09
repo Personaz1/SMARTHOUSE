@@ -36,6 +36,7 @@ from .storage.db import EventStore
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from .llm.router import generate_response
+from .metrics import vision_scans_total, vision_scan_latency_ms
 
 
 app = FastAPI(title="ΔΣ Guardian Core", version="0.1.0")
@@ -111,7 +112,7 @@ async def on_startup() -> None:
     state.triggers = TriggerEngine(context=state.context, tools=state.tools, rules=state.rules or [])
     await state.triggers.start()
     state.supervisor = Supervisor(state.tools)
-    state.analyzer = BackgroundAnalyzer(state.context)
+    state.analyzer = BackgroundAnalyzer(state.context, tools=state.tools)
     await state.analyzer.start()
     state.store = EventStore(path=os.getenv("DB_PATH", "/data/core.db"))
     await state.store.start(bus)

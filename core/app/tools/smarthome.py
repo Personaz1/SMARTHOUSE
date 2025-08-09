@@ -271,13 +271,15 @@ class SmartHomeTools:
         # Optionally download last.jpg and analyze
         try:
             import tempfile, httpx, os
-            from ..llm.vision import analyze_with_gemini, gv_labels, gv_objects, gv_ocr
+from ..llm.vision import analyze_with_gemini, gv_labels, gv_objects, gv_ocr
+from ..metrics import vision_scans_total, vision_scan_latency_ms
             url = snap.get("url") or None
             if not url and self._s3:
                 # presign
                 url = self._s3.presigned_get_object(self._snapshot_bucket, f"{camera_id}/last.jpg", expires=300)
             if url:
-                async with httpx.AsyncClient() as client:
+                start_scan = time.time()
+                async with httpx.AsyncClient(timeout=15.0) as client:
                     r = await client.get(url)
                     r.raise_for_status()
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tf:
@@ -306,11 +308,14 @@ class SmartHomeTools:
                     f"Инструкция: {prompt}. Кратко, по пунктам, без дисклеймеров."
                 )
                 text = analyze_with_gemini(tmp, prompt2)
+                latency_ms = (time.time() - start_scan) * 1000
+                vision_scan_latency_ms.labels(camera_id=camera_id).observe(latency_ms)
+                vision_scans_total.labels(camera_id=camera_id, result="ok").inc()
                 os.unlink(tmp)
                 result["facts"] = facts
                 result["analysis"] = text
         except Exception:
-            pass
+            vision_scans_total.labels(camera_id=camera_id, result="error").inc()
         return result
 
     async def create_automation_rule(self, rule: Dict[str, Any]) -> Any:
