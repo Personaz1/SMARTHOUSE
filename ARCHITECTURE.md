@@ -46,6 +46,7 @@ Prod override: `docker-compose.prod.yml` (restart policies, resource limits, sim
   - siren: `{type:"siren", state:"ON|OFF"}`
   - security: `{type:"security", mode:"away|night|home|disarmed"}`
 - Camera snapshot: fetch JPEG from sim HTTP, store to MinIO bucket `snapshots` at `{camera_id}/{ts}.jpg`
+  - Vision analyze: `/tools/camera_analyze` aggregates Cloud Vision (API key or SDK fallback) + OpenCV metrics, then Gemini Files API summary; publishes `vision/events/<camera_id>` to MQTT. Metrics: `vision_*`, `gemini_*`.
 
 #### State Context (`state/context.py`)
 - Dedicated MQTT client; subscribes `home/#` and `vision/events/#`
@@ -54,6 +55,7 @@ Prod override: `docker-compose.prod.yml` (restart policies, resource limits, sim
 #### Trigger Engine (`triggers/engine.py`)
 - Supports rule types: `time`, `sensor`
 - Conditions: `sensor_id` with `equals` subset match, or `topic` (e.g., `vision/events/cam_living`)
+  - Vision condition: `vision: {camera_id: "cam_living", contains: {gv_labels: "person"|[...], gv_objects: ..., gv_ocr: "text"}}`
 - Guards: `debounce_ms`, `throttle_per_min`, `retry{max,backoff_ms}`
 - Safety: `rate_limit_per_min` on rule
 - Actions: currently `control_light` and `notify` stub
