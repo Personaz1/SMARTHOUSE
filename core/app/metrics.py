@@ -72,3 +72,31 @@ analysis_ticks_total = Counter(
 )
 
 
+# Vision/Gemini metrics
+vision_calls_total = Counter(
+    "vision_calls_total",
+    "Vision API calls",
+    labelnames=("provider", "op", "result"),
+)
+
+vision_call_latency_ms = Histogram(
+    "vision_call_latency_ms",
+    "Vision API call latency in ms",
+    labelnames=("provider", "op"),
+    buckets=(25, 50, 100, 200, 400, 800, 1500, 3000, 5000, 10000),
+)
+
+gemini_calls_total = Counter(
+    "gemini_calls_total",
+    "Gemini LLM calls",
+    labelnames=("model", "result"),
+)
+
+gemini_call_latency_ms = Histogram(
+    "gemini_call_latency_ms",
+    "Gemini LLM latency in ms",
+    labelnames=("model",),
+    buckets=(50, 100, 200, 400, 800, 1500, 3000, 5000, 10000, 20000),
+)
+
+

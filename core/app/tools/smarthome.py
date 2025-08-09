@@ -283,14 +283,26 @@ class SmartHomeTools:
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tf:
                         tf.write(r.content)
                         tmp = tf.name
-                facts = {
-                    "gv_labels": gv_labels(tmp) or [],
-                    "gv_objects": gv_objects(tmp) or [],
-                    "gv_ocr": gv_ocr(tmp) or "",
-                }
+                # Gather facts with timeouts and metrics
+                facts = {}
+                try:
+                    facts["gv_labels"] = gv_labels(tmp) or []
+                except Exception:
+                    facts["gv_labels_error"] = True
+                try:
+                    facts["gv_objects"] = gv_objects(tmp) or []
+                except Exception:
+                    facts["gv_objects_error"] = True
+                try:
+                    facts["gv_ocr"] = gv_ocr(tmp) or ""
+                except Exception:
+                    facts["gv_ocr_error"] = True
+                from ..llm.vision import basic_opencv_metrics
+                facts["cv_metrics"] = basic_opencv_metrics(tmp)
                 prompt2 = (
-                    f"Факты из Cloud Vision: labels={facts['gv_labels']}, objects={facts['gv_objects']}, "
-                    f"ocr={facts['gv_ocr'][:200]}...\n\n"
+                    f"Факты из Cloud Vision: labels={facts.get('gv_labels')}, objects={facts.get('gv_objects')}, "
+                    f"ocr={(facts.get('gv_ocr') or '')[:200]}...\n"
+                    f"OpenCV: {facts['cv_metrics']}\n\n"
                     f"Инструкция: {prompt}. Кратко, по пунктам, без дисклеймеров."
                 )
                 text = analyze_with_gemini(tmp, prompt2)
