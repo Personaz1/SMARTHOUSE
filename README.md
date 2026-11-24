@@ -1,39 +1,30 @@
-# ΔΣ Guardian v2 — Core Bootstrap
+# SMARTHOUSE — Local-First Home Automation Architecture
 
-Local-first multi-agent home system skeleton. Day-0 deliverables:
+SMARTHOUSE is a local-first smart-home system skeleton. Its current bootstrap centers on MQTT messaging, a core API, configuration validation and observability.
 
-- Docker Compose stack: Mosquitto, Core API, Prometheus, Grafana
-- Config validation for `configs/devices.json` and `configs/rules.json`
-- MQTT client wrapper and SmartHomeTools skeleton (idempotent publish+wait)
+## Current repository scope
+- Docker Compose development stack.
+- Mosquitto MQTT broker.
+- Core API and SmartHomeTools skeleton.
+- Device and rule configuration files.
+- Prometheus/Grafana monitoring components.
 
-## Quick start
+## Design principles
+- Local control should remain possible without cloud dependence.
+- Device commands should be explicit, authenticated and auditable.
+- Tool operations should be idempotent where practical.
+- Device state must be distinguished from command acknowledgement.
+- Unsafe or ambiguous actions should fail closed.
 
-1) Copy environment
+## Development
+The repository includes an example environment file and Docker Compose configuration. Review credentials, network bindings and default dashboard access before running outside an isolated development machine. Never expose unauthenticated control endpoints or monitoring dashboards to the public internet.
 
-```bash
-cp .env.example .env
-```
+## Status
+Bootstrap/prototype, not a complete autonomous home platform. The presence of a tool skeleton or dashboard container does not establish reliable device integrations, safety certification or production readiness.
 
-2) Launch stack
-
-```bash
-docker compose up --build
-```
-
-3) Check health
-
-```bash
-curl http://localhost:8000/health
-```
-
-4) Send a demo command (light control)
-
-```bash
-curl -X POST http://localhost:8000/agent/command \
-  -H 'content-type: application/json' \
-  -d '{"command":{"tool":"control_light","args":{"device_id":"light_living_main","state":true,"brightness":50}}}'
-```
-
-Grafana: http://localhost:3000 (anonymous)
-
-
+## Roadmap
+1. Define device capability and state contracts.
+2. Add authentication and authorization for every control surface.
+3. Implement command acknowledgement, timeout and rollback semantics.
+4. Add simulation and integration tests.
+5. Document supported devices and offline behavior.
