@@ -1,0 +1,3 @@
+# Agent instructions
+
+Local smart-home architecture. Use simulation and synthetic device states by default. Never send commands to real devices, change locks, alarms, heating, power, cameras or access controls without explicit per-action human approval. Every action must be allowlisted, authenticated, logged, state-verified and fail-safe. Keep MinIO/runtime data, camera images, credentials and household data out of Git. Do not claim production safety without hazard analysis and tests.
