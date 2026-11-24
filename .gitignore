@@ -14,14 +14,17 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
-# Logs & data
+# Logs and runtime data
 logs/
 *.log
+infra/minio/data/
+snapshots/
+data/runtime/
 
 # Docker
 **/.dockerignore
 
-# Node (if any UI later)
+# Node
 node_modules/
 
 # Editor
