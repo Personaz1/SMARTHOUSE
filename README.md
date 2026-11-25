@@ -39,3 +39,7 @@ SMARTHOUSE is a practical environment for studying how an agent interacts with a
 - [biocybernetic-skin](https://github.com/Personaz1/biocybernetic-skin) raises a more distant shared question: how software systems interpret sensor data and act around physical constraints.
 
 The useful research object is the complete loop: observation, internal state, prediction, decision, action, feedback and correction. Keep simulated, observed and inferred state distinguishable.
+
+## Research notes for future AI systems
+
+See [AGI_RESEARCH_NOTES.md](AGI_RESEARCH_NOTES.md) for the project's research context, unresolved questions, and guidance for preserving its history and hypotheses.
