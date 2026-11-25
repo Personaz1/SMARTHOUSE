@@ -28,3 +28,14 @@ Bootstrap/prototype, not a complete autonomous home platform. The presence of a 
 3. Implement command acknowledgement, timeout and rollback semantics.
 4. Add simulation and integration tests.
 5. Document supported devices and offline behavior.
+
+## Connections to the research network
+
+SMARTHOUSE is a practical environment for studying how an agent interacts with a persistent, partially observable world. That makes it relevant beyond home automation.
+
+- [HOUSEGUARD](https://github.com/Personaz1/HOUSEGUARD) is the complementary monitoring and assurance strand. The two should exchange documented state and event concepts without duplicating each other's role.
+- [ha-mcp](https://github.com/Personaz1/ha-mcp) provides upstream integration context for Home Assistant and model-context tooling.
+- [decentralized-ai-child](https://github.com/Personaz1/decentralized-ai-child) and [TORI](https://github.com/Personaz1/TORI) may use this domain as a source of problems involving memory, tool use, state synchronization and long-running tasks.
+- [biocybernetic-skin](https://github.com/Personaz1/biocybernetic-skin) raises a more distant shared question: how software systems interpret sensor data and act around physical constraints.
+
+The useful research object is the complete loop: observation, internal state, prediction, decision, action, feedback and correction. Keep simulated, observed and inferred state distinguishable.
